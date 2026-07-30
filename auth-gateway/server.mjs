@@ -50,6 +50,13 @@ function wantsHtml(req) {
   return accept.includes("text/html") || accept === "" || accept === "*/*";
 }
 
+// The MCP endpoint implements its own OAuth flow. These routes must reach the
+// upstream unchanged so MCP clients can receive its WWW-Authenticate challenge
+// and discover the authorization server.
+function isMcpAuthRoute(pathname) {
+  return pathname === "/mcp" || pathname.startsWith("/.well-known/");
+}
+
 const sharedCss = `
   :root {
     color-scheme: dark;
@@ -366,6 +373,11 @@ const server = http.createServer(async (req, res) => {
     }
     const next = url.searchParams.get("next") || "/";
     sendStarting(req, res, next);
+    return;
+  }
+
+  if (isMcpAuthRoute(url.pathname)) {
+    proxy(req, res);
     return;
   }
 
